@@ -24,6 +24,7 @@ import android.widget.TextView;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Toast;
+import java.util.ArrayList;
 
 public class MainActivity extends Activity {
     private static final int CHOOSE_FILE = 100;
@@ -36,6 +37,7 @@ public class MainActivity extends Activity {
     private LinearLayout offline;
     private ValueCallback<Uri[]> fileCallback;
     private Uri server;
+    private Uri[] sharedFiles;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -67,6 +69,7 @@ public class MainActivity extends Activity {
         web.setDomStorageEnabled(true);
         web.setAllowFileAccess(false);
         web.setAllowContentAccess(true);
+        browser.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
         browser.setWebViewClient(new WebViewClient() {
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
                 browser.setVisibility(View.VISIBLE);
@@ -89,6 +92,13 @@ public class MainActivity extends Activity {
         browser.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
+                if (sharedFiles != null && sharedFiles.length > 0) {
+                    Uri[] selected = sharedFiles;
+                    sharedFiles = null;
+                    callback.onReceiveValue(selected);
+                    Toast.makeText(MainActivity.this, "Geteilte Dateien werden hochgeladen", Toast.LENGTH_SHORT).show();
+                    return true;
+                }
                 fileCallback = callback;
                 if (params.isCaptureEnabled()) {
                     Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -127,8 +137,40 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Download gestartet", Toast.LENGTH_SHORT).show();
         });
         migratePreferences();
+        receiveSharedFiles(getIntent());
         String saved = getSharedPreferences(PREFERENCES, MODE_PRIVATE).getString(SERVER_KEY, "");
         if (saved.isEmpty()) editSettings(); else openServer(saved);
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        receiveSharedFiles(intent);
+    }
+
+    private void receiveSharedFiles(Intent intent) {
+        if (intent == null || !(Intent.ACTION_SEND.equals(intent.getAction())
+            || Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction()))) return;
+        ArrayList<Uri> uris = new ArrayList<>();
+        if (intent.getClipData() != null) {
+            for (int index = 0; index < intent.getClipData().getItemCount(); index++) {
+                Uri uri = intent.getClipData().getItemAt(index).getUri();
+                if (uri != null && "content".equals(uri.getScheme())) uris.add(uri);
+            }
+        }
+        if (uris.isEmpty()) {
+            if (Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
+                ArrayList<Uri> many = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+                if (many != null) for (Uri uri : many) if (uri != null && "content".equals(uri.getScheme())) uris.add(uri);
+            } else {
+                Uri one = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                if (one != null && "content".equals(one.getScheme())) uris.add(one);
+            }
+        }
+        if (!uris.isEmpty()) {
+            sharedFiles = uris.toArray(new Uri[0]);
+            Toast.makeText(this, "Album öffnen und dort ‚Fotos auswählen‘ antippen.", Toast.LENGTH_LONG).show();
+        }
     }
 
     private LinearLayout makeOfflineView() {

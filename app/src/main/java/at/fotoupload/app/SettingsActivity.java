@@ -11,11 +11,20 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
+import com.google.mlkit.vision.barcode.common.Barcode;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class SettingsActivity extends Activity {
     private EditText address;
+    private Spinner history;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -54,6 +63,25 @@ public class SettingsActivity extends Activity {
             15, Color.rgb(80, 94, 90));
         help.setPadding(0, dp(12), 0, dp(24));
         page.addView(help);
+
+        history = new Spinner(this);
+        refreshHistory();
+        history.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
+                String selected = String.valueOf(parent.getItemAtPosition(position));
+                if (!selected.startsWith("Bisherige")) address.setText(selected);
+            }
+            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
+        });
+        page.addView(history, new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
+
+        Button scan = new Button(this);
+        scan.setText("QR-Code scannen");
+        scan.setAllCaps(false);
+        scan.setOnClickListener(view -> scanServer());
+        page.addView(scan, new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(52)));
 
         Button save = new Button(this);
         save.setText("Speichern und öffnen");
@@ -102,9 +130,44 @@ public class SettingsActivity extends Activity {
         if (uri == null) return;
         getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE).edit()
             .putString(MainActivity.SERVER_KEY, uri.toString()).apply();
+        Set<String> servers = new LinkedHashSet<>(getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE)
+            .getStringSet("servers", new LinkedHashSet<>()));
+        servers.add(uri.toString());
+        getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE).edit()
+            .putStringSet("servers", servers).apply();
         Toast.makeText(this, "Serveradresse gespeichert", Toast.LENGTH_SHORT).show();
         setResult(RESULT_OK);
         finish();
+    }
+
+    private void refreshHistory() {
+        ArrayList<String> servers = new ArrayList<>();
+        servers.add("Bisherige Server auswählen");
+        String current = getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE)
+            .getString(MainActivity.SERVER_KEY, "");
+        Set<String> known = new LinkedHashSet<>(getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE)
+            .getStringSet("servers", new LinkedHashSet<>()));
+        if (!current.isEmpty()) known.add(current);
+        servers.addAll(known);
+        history.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, servers));
+    }
+
+    private void scanServer() {
+        GmsBarcodeScannerOptions options = new GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE).enableAutoZoom().build();
+        GmsBarcodeScanning.getClient(this, options).startScan()
+            .addOnSuccessListener(barcode -> {
+                Uri scanned = Uri.parse(barcode.getRawValue() == null ? "" : barcode.getRawValue());
+                if (!("https".equalsIgnoreCase(scanned.getScheme()) || "http".equalsIgnoreCase(scanned.getScheme()))
+                    || scanned.getHost() == null || scanned.getUserInfo() != null) {
+                    Toast.makeText(this, "Dieser QR-Code enthält keine gültige Serveradresse.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                Uri base = new Uri.Builder().scheme(scanned.getScheme()).encodedAuthority(scanned.getEncodedAuthority()).build();
+                address.setText(base.toString());
+                Toast.makeText(this, "Serveradresse aus QR-Code übernommen", Toast.LENGTH_SHORT).show();
+            })
+            .addOnFailureListener(error -> Toast.makeText(this, "QR-Scanner konnte nicht gestartet werden.", Toast.LENGTH_LONG).show());
     }
 
     private Uri validAddress(String value) {

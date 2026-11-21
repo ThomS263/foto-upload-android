@@ -21,3 +21,5 @@ Die Serveradresse kann jederzeit über **⚙ Einstellungen** geändert und dort 
 Die App verwendet die Oberfläche des Servers. Kameraaufnahme, Foto- und Videoauswahl, Galerie und Downloads stehen in der App zur Verfügung. Für ZIP-Downloads ist Foto-Upload Server 3.0.3 oder neuer erforderlich.
 
 Ab Version 1.3 besitzt die App ein eigenes adaptives Android-Symbol, das sich an runde und quadratische Launcher-Formen anpasst.
+
+Ab Version 1.4 kann die Serveradresse per QR-Code übernommen werden. Mehrere bereits verwendete Server bleiben auswählbar. Fotos und Videos lassen sich aus anderen Android-Apps über **Teilen → Foto-Upload** vormerken und anschließend im gewünschten Album hochladen.

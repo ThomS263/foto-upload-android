@@ -8,3 +8,4 @@
 - Screenshots von Startseite, Album, Galerie, Teilen-Auswahl und Einstellungen für Telefon und Tablet hochladen.
 - Inhaltsfreigabe, Zielgruppe und Kontaktdaten vollständig ausfüllen.
 - Vor Produktion Installation, Update, Teilen, Hintergrund-Upload und Benachrichtigungen über den geschlossenen Test prüfen.
+- Der Release-Build deaktiviert GitHub-APK-Updates automatisch; Aktualisierungen der Play-Version erfolgen ausschließlich über Google Play.

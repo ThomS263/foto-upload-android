@@ -22,6 +22,8 @@ jobs:
           FOTO_UPLOAD_KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
           FOTO_UPLOAD_KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
         run: ./gradlew bundleRelease --no-daemon
+      - name: Signatur prüfen
+        run: jarsigner -verify -strict app/build/outputs/bundle/release/*.aab
       - uses: actions/upload-artifact@v4
         with:
           name: foto-upload-play-bundle

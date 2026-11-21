@@ -1,0 +1,1 @@
+Play-Store-Builds aktualisieren ausschließlich über Google Play; Signaturprüfung und Datenschutzbeschreibung wurden verbessert.

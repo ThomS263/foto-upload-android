@@ -168,7 +168,7 @@ public class MainActivity extends Activity {
         receiveSharedFiles(getIntent());
         String saved = getSharedPreferences(PREFERENCES, MODE_PRIVATE).getString(SERVER_KEY, "");
         if (saved.isEmpty()) editSettings(); else openServer(saved);
-        checkForUpdate();
+        if (BuildConfig.ALLOW_SIDELOAD_UPDATES) checkForUpdate();
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")
             != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 200);

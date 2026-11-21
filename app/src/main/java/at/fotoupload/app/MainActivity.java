@@ -13,11 +13,16 @@ import android.webkit.DownloadListener;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceError;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.LinearLayout;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.TextView;
+import android.view.Gravity;
+import android.view.View;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
@@ -28,6 +33,7 @@ public class MainActivity extends Activity {
     static final String SERVER_KEY = "server";
     private static final Uri CAMERA_URI = Uri.parse("content://at.fotoupload.app.camera/capture.jpg");
     private WebView browser;
+    private LinearLayout offline;
     private ValueCallback<Uri[]> fileCallback;
     private Uri server;
 
@@ -47,8 +53,12 @@ public class MainActivity extends Activity {
         settings.setAllCaps(false);
         settings.setOnClickListener(view -> editSettings());
         layout.addView(settings);
+        FrameLayout content = new FrameLayout(this);
         browser = new WebView(this);
-        layout.addView(browser, new LinearLayout.LayoutParams(-1, 0, 1));
+        content.addView(browser, new FrameLayout.LayoutParams(-1, -1));
+        offline = makeOfflineView();
+        content.addView(offline, new FrameLayout.LayoutParams(-1, -1));
+        layout.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(layout);
         WebSettings web = browser.getSettings();
         web.setJavaScriptEnabled(true);
@@ -58,6 +68,15 @@ public class MainActivity extends Activity {
         web.setAllowFileAccess(false);
         web.setAllowContentAccess(true);
         browser.setWebViewClient(new WebViewClient() {
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                browser.setVisibility(View.VISIBLE);
+                offline.setVisibility(View.GONE);
+            }
+
+            @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request.isForMainFrame()) showOffline();
+            }
+
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri target = request.getUrl();
                 if (sameServer(target)) return false;
@@ -110,6 +129,43 @@ public class MainActivity extends Activity {
         migratePreferences();
         String saved = getSharedPreferences(PREFERENCES, MODE_PRIVATE).getString(SERVER_KEY, "");
         if (saved.isEmpty()) editSettings(); else openServer(saved);
+    }
+
+    private LinearLayout makeOfflineView() {
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER);
+        panel.setPadding(48, 48, 48, 48);
+        panel.setBackgroundColor(Color.rgb(248, 250, 249));
+        panel.setVisibility(View.GONE);
+        TextView title = new TextView(this);
+        title.setText("Server nicht erreichbar");
+        title.setTextSize(24);
+        title.setTextColor(Color.rgb(23, 60, 52));
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title);
+        TextView message = new TextView(this);
+        message.setText("Prüfe deine Internetverbindung oder die Serveradresse.");
+        message.setTextSize(16);
+        message.setGravity(Gravity.CENTER);
+        message.setPadding(0, 20, 0, 24);
+        panel.addView(message);
+        Button retry = new Button(this);
+        retry.setText("Erneut versuchen");
+        retry.setAllCaps(false);
+        retry.setOnClickListener(view -> browser.reload());
+        panel.addView(retry);
+        Button change = new Button(this);
+        change.setText("Serveradresse ändern");
+        change.setAllCaps(false);
+        change.setOnClickListener(view -> editSettings());
+        panel.addView(change);
+        return panel;
+    }
+
+    private void showOffline() {
+        browser.setVisibility(View.GONE);
+        offline.setVisibility(View.VISIBLE);
     }
 
     private boolean sameServer(Uri target) {

@@ -11,6 +11,8 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class SettingsActivity extends Activity {
     private EditText address;
@@ -61,6 +63,15 @@ public class SettingsActivity extends Activity {
         page.addView(save, new LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, dp(56)));
 
+        Button test = new Button(this);
+        test.setText("Verbindung testen");
+        test.setAllCaps(false);
+        test.setOnClickListener(view -> testConnection(test));
+        LinearLayout.LayoutParams testParams = new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(52));
+        testParams.topMargin = dp(10);
+        page.addView(test, testParams);
+
         Button cancel = new Button(this);
         cancel.setText("Abbrechen");
         cancel.setAllCaps(false);
@@ -87,6 +98,16 @@ public class SettingsActivity extends Activity {
 
     private void save() {
         String value = address.getText().toString().trim();
+        Uri uri = validAddress(value);
+        if (uri == null) return;
+        getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE).edit()
+            .putString(MainActivity.SERVER_KEY, uri.toString()).apply();
+        Toast.makeText(this, "Serveradresse gespeichert", Toast.LENGTH_SHORT).show();
+        setResult(RESULT_OK);
+        finish();
+    }
+
+    private Uri validAddress(String value) {
         Uri uri = Uri.parse(value);
         boolean validScheme = "https".equalsIgnoreCase(uri.getScheme())
             || "http".equalsIgnoreCase(uri.getScheme());
@@ -95,12 +116,38 @@ public class SettingsActivity extends Activity {
             || uri.getQuery() != null || uri.getFragment() != null) {
             address.setError("Bitte eine vollständige Adresse eingeben, z. B. https://fotos.example.org");
             address.requestFocus();
-            return;
+            return null;
         }
-        getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE).edit()
-            .putString(MainActivity.SERVER_KEY, uri.toString()).apply();
-        Toast.makeText(this, "Serveradresse gespeichert", Toast.LENGTH_SHORT).show();
-        setResult(RESULT_OK);
-        finish();
+        return uri;
+    }
+
+    private void testConnection(Button button) {
+        Uri uri = validAddress(address.getText().toString().trim());
+        if (uri == null) return;
+        button.setEnabled(false);
+        button.setText("Wird geprüft …");
+        new Thread(() -> {
+            boolean okay = false;
+            HttpURLConnection connection = null;
+            try {
+                URL health = new URL(uri.toString().replaceAll("/$", "") + "/health?ready=1");
+                connection = (HttpURLConnection) health.openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                connection.setInstanceFollowRedirects(false);
+                okay = connection.getResponseCode() == 200;
+            } catch (Exception ignored) {
+                okay = false;
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+            boolean result = okay;
+            runOnUiThread(() -> {
+                button.setEnabled(true);
+                button.setText("Verbindung testen");
+                Toast.makeText(this, result ? "Server ist erreichbar" : "Server nicht erreichbar",
+                    Toast.LENGTH_LONG).show();
+            });
+        }).start();
     }
 }

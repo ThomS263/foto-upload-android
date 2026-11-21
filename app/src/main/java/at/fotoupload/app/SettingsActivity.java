@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.ScrollView;
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
@@ -24,7 +25,9 @@ import java.util.Set;
 
 public class SettingsActivity extends Activity {
     private EditText address;
+    private EditText profileName;
     private Spinner history;
+    private final ArrayList<String> profileUrls = new ArrayList<>();
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -48,6 +51,12 @@ public class SettingsActivity extends Activity {
         TextView label = text("Serveradresse", 17, Color.rgb(30, 45, 41));
         page.addView(label);
 
+        profileName = new EditText(this);
+        profileName.setSingleLine(true);
+        profileName.setHint("Name, z. B. Zuhause oder Familie");
+        page.addView(profileName, new LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
         address = new EditText(this);
         address.setSingleLine(true);
         address.setHint("https://fotos.example.org");
@@ -68,8 +77,12 @@ public class SettingsActivity extends Activity {
         refreshHistory();
         history.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(android.widget.AdapterView<?> parent, android.view.View view, int position, long id) {
-                String selected = String.valueOf(parent.getItemAtPosition(position));
-                if (!selected.startsWith("Bisherige")) address.setText(selected);
+                if (position > 0 && position - 1 < profileUrls.size()) {
+                    String selected = profileUrls.get(position - 1);
+                    address.setText(selected);
+                    profileName.setText(getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE)
+                        .getString("profile:" + selected, ""));
+                }
             }
             @Override public void onNothingSelected(android.widget.AdapterView<?> parent) { }
         });
@@ -100,6 +113,12 @@ public class SettingsActivity extends Activity {
         testParams.topMargin = dp(10);
         page.addView(test, testParams);
 
+        Button remove = new Button(this);
+        remove.setText("Profil aus Liste entfernen");
+        remove.setAllCaps(false);
+        remove.setOnClickListener(view -> removeProfile());
+        page.addView(remove, testParams);
+
         Button cancel = new Button(this);
         cancel.setText("Abbrechen");
         cancel.setAllCaps(false);
@@ -109,7 +128,10 @@ public class SettingsActivity extends Activity {
         cancelParams.topMargin = dp(10);
         page.addView(cancel, cancelParams);
 
-        setContentView(page);
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.addView(page);
+        setContentView(scroll);
     }
 
     private TextView text(String value, int size, int color) {
@@ -129,7 +151,8 @@ public class SettingsActivity extends Activity {
         Uri uri = validAddress(value);
         if (uri == null) return;
         getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE).edit()
-            .putString(MainActivity.SERVER_KEY, uri.toString()).apply();
+            .putString(MainActivity.SERVER_KEY, uri.toString())
+            .putString("profile:" + uri, profileName.getText().toString().trim()).apply();
         Set<String> servers = new LinkedHashSet<>(getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE)
             .getStringSet("servers", new LinkedHashSet<>()));
         servers.add(uri.toString());
@@ -148,7 +171,13 @@ public class SettingsActivity extends Activity {
         Set<String> known = new LinkedHashSet<>(getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE)
             .getStringSet("servers", new LinkedHashSet<>()));
         if (!current.isEmpty()) known.add(current);
-        servers.addAll(known);
+        profileUrls.clear();
+        profileUrls.addAll(known);
+        for (String url : profileUrls) {
+            String name = getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE)
+                .getString("profile:" + url, "");
+            servers.add(name.isEmpty() ? url : name + " · " + url);
+        }
         history.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, servers));
     }
 
@@ -168,6 +197,21 @@ public class SettingsActivity extends Activity {
                 Toast.makeText(this, "Serveradresse aus QR-Code übernommen", Toast.LENGTH_SHORT).show();
             })
             .addOnFailureListener(error -> Toast.makeText(this, "QR-Scanner konnte nicht gestartet werden.", Toast.LENGTH_LONG).show());
+    }
+
+    private void removeProfile() {
+        String value = address.getText().toString().trim();
+        Set<String> servers = new LinkedHashSet<>(getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE)
+            .getStringSet("servers", new LinkedHashSet<>()));
+        if (!servers.remove(value)) {
+            Toast.makeText(this, "Dieses Profil ist noch nicht gespeichert.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE).edit()
+            .putStringSet("servers", servers).remove("profile:" + value).apply();
+        profileName.setText("");
+        refreshHistory();
+        Toast.makeText(this, "Profil aus der Liste entfernt", Toast.LENGTH_SHORT).show();
     }
 
     private Uri validAddress(String value) {

@@ -2,6 +2,7 @@ package at.fotoupload.app;
 
 import android.app.Activity;
 import android.app.DownloadManager;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -17,6 +18,9 @@ import android.webkit.WebResourceError;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.JavascriptInterface;
+import android.os.Build;
+import android.content.pm.PackageManager;
 import android.widget.LinearLayout;
 import android.widget.Button;
 import android.widget.FrameLayout;
@@ -25,8 +29,16 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.Toast;
 import java.util.ArrayList;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import org.json.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONTokener;
 
 public class MainActivity extends Activity {
+    private boolean uploadServiceActive = false;
     private static final int CHOOSE_FILE = 100;
     private static final int CAPTURE_PHOTO = 101;
     private static final int EDIT_SETTINGS = 102;
@@ -38,6 +50,7 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileCallback;
     private Uri server;
     private Uri[] sharedFiles;
+    private boolean sharedAlbumPicker;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -50,17 +63,24 @@ public class MainActivity extends Activity {
         });
         getWindow().setStatusBarColor(Color.rgb(23, 60, 52));
         getWindow().setNavigationBarColor(Color.rgb(23, 60, 52));
-        Button settings = new Button(this);
-        settings.setText("⚙  Einstellungen");
-        settings.setAllCaps(false);
+        LinearLayout navigation = new LinearLayout(this);
+        navigation.setOrientation(LinearLayout.HORIZONTAL);
+        Button home = navButton("⌂\nStart");
+        home.setOnClickListener(view -> { if (server != null) browser.loadUrl(server.toString()); });
+        Button refresh = navButton("↻\nNeu laden");
+        refresh.setOnClickListener(view -> browser.reload());
+        Button settings = navButton("⚙\nEinstellungen");
         settings.setOnClickListener(view -> editSettings());
+        navigation.addView(home, new LinearLayout.LayoutParams(0, -1, 1));
+        navigation.addView(refresh, new LinearLayout.LayoutParams(0, -1, 1));
+        navigation.addView(settings, new LinearLayout.LayoutParams(0, -1, 1));
         FrameLayout content = new FrameLayout(this);
         browser = new WebView(this);
         content.addView(browser, new FrameLayout.LayoutParams(-1, -1));
         offline = makeOfflineView();
         content.addView(offline, new FrameLayout.LayoutParams(-1, -1));
         layout.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));
-        layout.addView(settings, new LinearLayout.LayoutParams(-1, dp(52)));
+        layout.addView(navigation, new LinearLayout.LayoutParams(-1, dp(56)));
         setContentView(layout);
         WebSettings web = browser.getSettings();
         web.setJavaScriptEnabled(true);
@@ -69,11 +89,19 @@ public class MainActivity extends Activity {
         web.setDomStorageEnabled(true);
         web.setAllowFileAccess(false);
         web.setAllowContentAccess(true);
+        browser.addJavascriptInterface(new UploadBridge(), "AndroidUpload");
         browser.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
         browser.setWebViewClient(new WebViewClient() {
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
                 browser.setVisibility(View.VISIBLE);
                 offline.setVisibility(View.GONE);
+            }
+
+            @Override public void onPageFinished(WebView view, String url) {
+                if (sharedFiles != null && sharedAlbumPicker && sameServer(Uri.parse(url))) {
+                    sharedAlbumPicker = false;
+                    showSharedAlbumPicker();
+                }
             }
 
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
@@ -140,10 +168,85 @@ public class MainActivity extends Activity {
         receiveSharedFiles(getIntent());
         String saved = getSharedPreferences(PREFERENCES, MODE_PRIVATE).getString(SERVER_KEY, "");
         if (saved.isEmpty()) editSettings(); else openServer(saved);
+        checkForUpdate();
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")
+            != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 200);
+        }
     }
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private Button navButton(String label) {
+        Button button = new Button(this);
+        button.setText(label);
+        button.setAllCaps(false);
+        button.setTextSize(10);
+        button.setLines(2);
+        button.setPadding(0, 0, 0, 0);
+        return button;
+    }
+
+    private void checkForUpdate() {
+        new Thread(() -> {
+            HttpURLConnection connection = null;
+            try {
+                connection = (HttpURLConnection) new URL(
+                    "https://api.github.com/repos/ThomS263/foto_upload_offiziell_androidapp/releases/latest"
+                ).openConnection();
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+                String installed = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+                connection.setRequestProperty("User-Agent", "FotoUploadAndroid/" + installed);
+                if (connection.getResponseCode() != 200) return;
+                StringBuilder body = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null && body.length() < 65536) body.append(line);
+                }
+                String latest = new JSONObject(body.toString()).optString("tag_name", "").replaceFirst("^v", "");
+                if (!newer(latest, installed)) return;
+                runOnUiThread(() -> new AlertDialog.Builder(this)
+                    .setTitle("App-Update verfügbar")
+                    .setMessage("Version " + latest + " kann jetzt von GitHub installiert werden.")
+                    .setPositiveButton("APK herunterladen", (dialog, which) -> startActivity(new Intent(
+                        Intent.ACTION_VIEW, Uri.parse("https://github.com/ThomS263/foto_upload_offiziell_androidapp/releases/latest"))))
+                    .setNegativeButton("Später", null).show());
+            } catch (Exception ignored) {
+                // Updates are optional; the app remains usable without GitHub.
+            } finally {
+                if (connection != null) connection.disconnect();
+            }
+        }).start();
+    }
+
+    private boolean newer(String candidate, String installed) {
+        try {
+            String[] left = candidate.split("\\.");
+            String[] right = installed.split("\\.");
+            for (int index = 0; index < Math.max(left.length, right.length); index++) {
+                int a = index < left.length ? Integer.parseInt(left[index]) : 0;
+                int b = index < right.length ? Integer.parseInt(right[index]) : 0;
+                if (a != b) return a > b;
+            }
+        } catch (NumberFormatException ignored) { }
+        return false;
+    }
+
+    private class UploadBridge {
+        @JavascriptInterface public void setActive(boolean active, int count) {
+            Intent service = new Intent(MainActivity.this, UploadService.class)
+                .putExtra("active", active).putExtra("count", count);
+            if (active) {
+                uploadServiceActive = true;
+                startForegroundService(service);
+            } else if (uploadServiceActive) {
+                uploadServiceActive = false;
+                startService(service);
+            }
+        }
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -173,8 +276,34 @@ public class MainActivity extends Activity {
         }
         if (!uris.isEmpty()) {
             sharedFiles = uris.toArray(new Uri[0]);
-            Toast.makeText(this, "Album öffnen und dort ‚Fotos auswählen‘ antippen.", Toast.LENGTH_LONG).show();
+            sharedAlbumPicker = true;
+            if (server != null) browser.loadUrl(server.toString());
+            Toast.makeText(this, "Wähle gleich das Zielalbum aus.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void showSharedAlbumPicker() {
+        browser.evaluateJavascript(
+            "JSON.stringify(Array.from(document.querySelectorAll('.album-link')).map(a=>({t:a.querySelector('strong')?.textContent||a.textContent.trim(),u:a.getAttribute('href')})))",
+            result -> {
+                try {
+                    Object decoded = new JSONTokener(result).nextValue();
+                    JSONArray albums = new JSONArray(String.valueOf(decoded));
+                    if (albums.length() == 0) {
+                        Toast.makeText(this, "Kein Album gefunden. Öffne ein Album und tippe Fotos auswählen.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    String[] names = new String[albums.length()];
+                    for (int index = 0; index < albums.length(); index++) names[index] = albums.getJSONObject(index).getString("t");
+                    new AlertDialog.Builder(this).setTitle("Zielalbum auswählen").setItems(names, (dialog, which) -> {
+                        String path = albums.optJSONObject(which).optString("u", "/");
+                        browser.loadUrl(server.buildUpon().path(path).build().toString());
+                        Toast.makeText(this, "Falls nötig anmelden, dann Fotos auswählen antippen.", Toast.LENGTH_LONG).show();
+                    }).setNegativeButton("Abbrechen", null).show();
+                } catch (Exception error) {
+                    Toast.makeText(this, "Albumwahl konnte nicht geladen werden.", Toast.LENGTH_LONG).show();
+                }
+            });
     }
 
     private LinearLayout makeOfflineView() {

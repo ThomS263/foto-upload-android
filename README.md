@@ -19,3 +19,5 @@ Die App speichert die Serveradresse lokal. HTTPS ist für den Zugriff über das 
 Die Serveradresse kann jederzeit über **⚙ Einstellungen** geändert und dort getestet werden. Nach dem Speichern öffnet die App automatisch den neuen Server. Ist er nicht erreichbar, zeigt die App eine verständliche Fehlerseite mit Wiederholungs- und Einstellungs-Schaltfläche.
 
 Die App verwendet die Oberfläche des Servers. Kameraaufnahme, Foto- und Videoauswahl, Galerie und Downloads stehen in der App zur Verfügung. Für ZIP-Downloads ist Foto-Upload Server 3.0.3 oder neuer erforderlich.
+
+Ab Version 1.3 besitzt die App ein eigenes adaptives Android-Symbol, das sich an runde und quadratische Launcher-Formen anpasst.

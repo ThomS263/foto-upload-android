@@ -16,4 +16,4 @@ Die Debug-APK liegt unter `app/build/outputs/apk/debug/`. Auf einem echten Gerä
 
 Die App speichert die Serveradresse lokal. HTTPS ist für den Zugriff über das Internet geeignet. HTTP ist für Server im eigenen Netzwerk verfügbar. Die Auswahl mehrerer Fotos erfolgt über die Android-Dateiauswahl.
 
-Die erste Version unterstützt den normalen Foto- und Video-Upload und das Öffnen der Galerie. Die direkte Kameraaufnahme und ZIP-Downloads aus der App sind noch nicht fertig. Dafür kann die Serveradresse im normalen Android-Browser geöffnet werden.
+Die App verwendet die Oberfläche des Servers. Kameraaufnahme, Foto- und Videoauswahl, Galerie und Downloads stehen in der App zur Verfügung. Für ZIP-Downloads ist Foto-Upload Server 3.0.3 oder neuer erforderlich.

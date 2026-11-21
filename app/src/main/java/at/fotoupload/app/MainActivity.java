@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.ValueCallback;
@@ -22,6 +23,8 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity {
     private static final int CHOOSE_FILE = 100;
+    private static final int CAPTURE_PHOTO = 101;
+    private static final Uri CAMERA_URI = Uri.parse("content://at.fotoupload.app.camera/capture.jpg");
     private WebView browser;
     private ValueCallback<Uri[]> fileCallback;
     private Uri server;
@@ -39,6 +42,7 @@ public class MainActivity extends Activity {
         setContentView(layout);
         WebSettings web = browser.getSettings();
         web.setJavaScriptEnabled(true);
+        web.setUserAgentString(web.getUserAgentString() + " FotoUploadAndroid/1");
         web.setDomStorageEnabled(true);
         web.setAllowFileAccess(false);
         web.setAllowContentAccess(true);
@@ -56,6 +60,17 @@ public class MainActivity extends Activity {
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
+                if (params.isCaptureEnabled()) {
+                    Intent camera = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    camera.putExtra(MediaStore.EXTRA_OUTPUT, CAMERA_URI);
+                    camera.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    try {
+                        startActivityForResult(camera, CAPTURE_PHOTO);
+                        return true;
+                    } catch (android.content.ActivityNotFoundException error) {
+                        // Fall through to the system photo picker.
+                    }
+                }
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("*/*");
@@ -123,6 +138,9 @@ public class MainActivity extends Activity {
         super.onActivityResult(code, result, data);
         if (code == CHOOSE_FILE && fileCallback != null) {
             fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result, data));
+            fileCallback = null;
+        } else if (code == CAPTURE_PHOTO && fileCallback != null) {
+            fileCallback.onReceiveValue(result == RESULT_OK ? new Uri[]{CAMERA_URI} : null);
             fileCallback = null;
         }
     }

@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.graphics.Color;
 import android.provider.MediaStore;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
@@ -33,8 +34,16 @@ public class MainActivity extends Activity {
         super.onCreate(state);
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setBackgroundColor(Color.rgb(23, 60, 52));
+        layout.setOnApplyWindowInsetsListener((view, insets) -> {
+            view.setPadding(0, insets.getSystemWindowInsetTop(), 0, insets.getSystemWindowInsetBottom());
+            return insets;
+        });
+        getWindow().setStatusBarColor(Color.rgb(23, 60, 52));
+        getWindow().setNavigationBarColor(Color.rgb(23, 60, 52));
         Button settings = new Button(this);
         settings.setText("Serveradresse ändern");
+        settings.setAllCaps(false);
         settings.setOnClickListener(view -> editServer());
         layout.addView(settings);
         browser = new WebView(this);
@@ -42,6 +51,7 @@ public class MainActivity extends Activity {
         setContentView(layout);
         WebSettings web = browser.getSettings();
         web.setJavaScriptEnabled(true);
+        web.setTextZoom(100);
         web.setUserAgentString(web.getUserAgentString() + " FotoUploadAndroid/1");
         web.setDomStorageEnabled(true);
         web.setAllowFileAccess(false);

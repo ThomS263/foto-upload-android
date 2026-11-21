@@ -54,13 +54,13 @@ public class MainActivity extends Activity {
         settings.setText("⚙  Einstellungen");
         settings.setAllCaps(false);
         settings.setOnClickListener(view -> editSettings());
-        layout.addView(settings);
         FrameLayout content = new FrameLayout(this);
         browser = new WebView(this);
         content.addView(browser, new FrameLayout.LayoutParams(-1, -1));
         offline = makeOfflineView();
         content.addView(offline, new FrameLayout.LayoutParams(-1, -1));
         layout.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));
+        layout.addView(settings, new LinearLayout.LayoutParams(-1, dp(52)));
         setContentView(layout);
         WebSettings web = browser.getSettings();
         web.setJavaScriptEnabled(true);
@@ -140,6 +140,10 @@ public class MainActivity extends Activity {
         receiveSharedFiles(getIntent());
         String saved = getSharedPreferences(PREFERENCES, MODE_PRIVATE).getString(SERVER_KEY, "");
         if (saved.isEmpty()) editSettings(); else openServer(saved);
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     @Override protected void onNewIntent(Intent intent) {

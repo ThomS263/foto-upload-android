@@ -1,7 +1,6 @@
 package at.fotoupload.app;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
@@ -17,7 +16,6 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Button;
 import android.widget.Toast;
@@ -25,6 +23,9 @@ import android.widget.Toast;
 public class MainActivity extends Activity {
     private static final int CHOOSE_FILE = 100;
     private static final int CAPTURE_PHOTO = 101;
+    private static final int EDIT_SETTINGS = 102;
+    static final String PREFERENCES = "foto_upload_settings";
+    static final String SERVER_KEY = "server";
     private static final Uri CAMERA_URI = Uri.parse("content://at.fotoupload.app.camera/capture.jpg");
     private WebView browser;
     private ValueCallback<Uri[]> fileCallback;
@@ -42,9 +43,9 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(23, 60, 52));
         getWindow().setNavigationBarColor(Color.rgb(23, 60, 52));
         Button settings = new Button(this);
-        settings.setText("Serveradresse ändern");
+        settings.setText("⚙  Einstellungen");
         settings.setAllCaps(false);
-        settings.setOnClickListener(view -> editServer());
+        settings.setOnClickListener(view -> editSettings());
         layout.addView(settings);
         browser = new WebView(this);
         layout.addView(browser, new LinearLayout.LayoutParams(-1, 0, 1));
@@ -106,8 +107,9 @@ public class MainActivity extends Activity {
             ((DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE)).enqueue(request);
             Toast.makeText(this, "Download gestartet", Toast.LENGTH_SHORT).show();
         });
-        String saved = getPreferences(MODE_PRIVATE).getString("server", "");
-        if (saved.isEmpty()) editServer(); else openServer(saved);
+        migratePreferences();
+        String saved = getSharedPreferences(PREFERENCES, MODE_PRIVATE).getString(SERVER_KEY, "");
+        if (saved.isEmpty()) editSettings(); else openServer(saved);
     }
 
     private boolean sameServer(Uri target) {
@@ -125,23 +127,26 @@ public class MainActivity extends Activity {
             || (candidate.getPath() != null && !candidate.getPath().isEmpty() && !candidate.getPath().equals("/"))
             || candidate.getQuery() != null || candidate.getFragment() != null) {
             Toast.makeText(this, "Bitte eine vollständige Serveradresse eingeben.", Toast.LENGTH_LONG).show();
-            editServer();
+            editSettings();
             return;
         }
         server = candidate;
-        getPreferences(MODE_PRIVATE).edit().putString("server", candidate.toString()).apply();
+        getSharedPreferences(PREFERENCES, MODE_PRIVATE).edit()
+            .putString(SERVER_KEY, candidate.toString()).apply();
         browser.loadUrl(candidate.toString());
     }
 
-    private void editServer() {
-        EditText input = new EditText(this);
-        input.setSingleLine(true);
-        input.setHint("https://fotos.example.org");
-        input.setText(getPreferences(MODE_PRIVATE).getString("server", ""));
-        new AlertDialog.Builder(this).setTitle("Serveradresse")
-            .setMessage("Gib die Adresse deines Foto-Upload-Servers ein.")
-            .setView(input).setPositiveButton("Öffnen", (dialog, which) -> openServer(input.getText().toString()))
-            .setNegativeButton("Abbrechen", (dialog, which) -> { if (server == null) finish(); }).show();
+    private void migratePreferences() {
+        String saved = getSharedPreferences(PREFERENCES, MODE_PRIVATE).getString(SERVER_KEY, "");
+        if (!saved.isEmpty()) return;
+        String old = getPreferences(MODE_PRIVATE).getString(SERVER_KEY, "");
+        if (!old.isEmpty()) {
+            getSharedPreferences(PREFERENCES, MODE_PRIVATE).edit().putString(SERVER_KEY, old).apply();
+        }
+    }
+
+    private void editSettings() {
+        startActivityForResult(new Intent(this, SettingsActivity.class), EDIT_SETTINGS);
     }
 
     @Override protected void onActivityResult(int code, int result, Intent data) {
@@ -152,6 +157,10 @@ public class MainActivity extends Activity {
         } else if (code == CAPTURE_PHOTO && fileCallback != null) {
             fileCallback.onReceiveValue(result == RESULT_OK ? new Uri[]{CAMERA_URI} : null);
             fileCallback = null;
+        } else if (code == EDIT_SETTINGS) {
+            String saved = getSharedPreferences(PREFERENCES, MODE_PRIVATE).getString(SERVER_KEY, "");
+            if (!saved.isEmpty()) openServer(saved);
+            else if (server == null) finish();
         }
     }
 

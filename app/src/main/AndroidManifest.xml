@@ -5,6 +5,7 @@
         android:usesCleartextTraffic="true" android:allowBackup="false">
         <provider android:name=".CameraProvider" android:authorities="at.fotoupload.app.camera"
             android:exported="false" android:grantUriPermissions="true" />
+        <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -29,3 +29,9 @@ Ab Version 1.3 besitzt die App ein eigenes adaptives Android-Symbol, das sich an
 Ab Version 1.4 kann die Serveradresse per QR-Code übernommen werden. Mehrere bereits verwendete Server bleiben auswählbar. Fotos und Videos lassen sich aus anderen Android-Apps über **Teilen → Foto-Upload** vormerken und anschließend im gewünschten Album hochladen.
 
 Ab Version 1.5 prüft die App GitHub Releases auf neue APKs. Beim Teilen zeigt sie die vorhandenen Alben in einer nativen Auswahl. Während laufender Übertragungen hält ein Android-Dienst den Upload mit einer Benachrichtigung aktiv und meldet den erfolgreichen Abschluss.
+
+## Google Play vorbereiten
+
+Datenschutzerklärung und Store-Texte liegen im Repository. Der Workflow **Play-Store-Bundle erstellen** erzeugt nach manueller Freigabe ein signiertes Android App Bundle. Dafür werden die GitHub-Secrets `PLAY_KEYSTORE_BASE64`, `PLAY_STORE_PASSWORD`, `PLAY_KEY_ALIAS` und `PLAY_KEY_PASSWORD` benötigt. Das erzeugte `.aab` kann zunächst in den internen oder geschlossenen Test von Google Play hochgeladen werden. Die Release-Signatur muss dauerhaft gesichert werden; ohne denselben Schlüssel lassen sich spätere Updates nicht veröffentlichen.
+
+[Datenschutzerklärung](PRIVACY.md) · [Play-Store-Checkliste](PLAY_STORE.md)

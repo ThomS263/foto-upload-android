@@ -1,0 +1,1 @@
+Foto-Upload verbindet dein Android-Gerät mit einem selbst betriebenen Foto-Upload-Server. Öffne Alben, lade Fotos und Videos hoch, verwende die Galerie und teile Medien direkt aus anderen Apps. Mehrere Server können als benannte Profile gespeichert werden. Uploads laufen mit einer sichtbaren Benachrichtigung weiter. Die App enthält keine Werbung und keine Analyse.

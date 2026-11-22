@@ -20,6 +20,10 @@ cd foto_upload_offiziell_androidapp
 
 Die Debug-APK liegt unter `app/build/outputs/apk/debug/`. Auf einem echten Gerät muss die eingegebene Serveradresse erreichbar sein. Zum Testen auf dem Android-Emulator verweist `http://10.0.2.2:8080` auf einen lokalen Server des Entwicklungsrechners.
 
+## Lizenz
+
+Die Android-App steht unter der [GNU Affero General Public License v3.0](LICENSE) (`AGPL-3.0-only`).
+
 Die App speichert die Serveradresse lokal. HTTPS ist für den Zugriff über das Internet geeignet. HTTP ist für Server im eigenen Netzwerk verfügbar. Die Auswahl mehrerer Fotos erfolgt über die Android-Dateiauswahl.
 
 Über die untere Leiste stehen **Start**, **Aktualisieren** und **Einstellungen** jederzeit bereit. Server lassen sich als benannte Profile wie „Zuhause“, „Familie“ oder „Verein“ speichern, umbenennen, testen und wieder löschen. Nach dem Speichern öffnet die App automatisch den gewählten Server.

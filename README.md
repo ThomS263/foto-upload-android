@@ -6,6 +6,8 @@ Android-App für einen selbst betriebenen Foto-Upload-Server. Beim ersten Start 
 
 Die APK kann bis zur Veröffentlichung im Google Play Store direkt über GitHub Releases installiert werden. Bei Android muss dafür gegebenenfalls einmalig die Installation aus dem verwendeten Browser erlaubt werden.
 
+Die App verlangt keine pauschalen Kamera- oder Mediathek-Rechte: Kamera und Dateiauswahl laufen über Android-Systemdialoge mit temporären Freigaben. HTTPS-Zertifikate werden vom Betriebssystem geprüft; HTTP löst eine deutliche LAN-Warnung aus. Serveradressen sind keine Zugangsdaten, liegen im privaten App-Speicher und werden nicht in Android-Backups übernommen. Details und der vertrauliche Meldeweg stehen in [SECURITY.md](SECURITY.md).
+
 ## In Android Studio öffnen
 
 Das Repository klonen und in Android Studio als Projekt öffnen. Android SDK Platform 35 und die zugehörigen Build-Tools installieren. Dann auf einem Android-Gerät oder Emulator ausführen. Die App unterstützt Android 8.0 und neuer.

@@ -1,6 +1,7 @@
 package at.fotoupload.app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
@@ -150,6 +151,17 @@ public class SettingsActivity extends Activity {
         String value = address.getText().toString().trim();
         Uri uri = validAddress(value);
         if (uri == null) return;
+        if ("http".equalsIgnoreCase(uri.getScheme())) {
+            new AlertDialog.Builder(this).setTitle("Ungeschützte Verbindung")
+                .setMessage("HTTP ist nur für ein vertrauenswürdiges lokales Netzwerk gedacht. Für Zugriff über das Internet muss der Server HTTPS verwenden.")
+                .setPositiveButton("Nur im LAN verwenden", (dialog, which) -> saveUri(uri))
+                .setNegativeButton("Abbrechen", null).show();
+            return;
+        }
+        saveUri(uri);
+    }
+
+    private void saveUri(Uri uri) {
         getSharedPreferences(MainActivity.PREFERENCES, MODE_PRIVATE).edit()
             .putString(MainActivity.SERVER_KEY, uri.toString())
             .putString("profile:" + uri, profileName.getText().toString().trim()).apply();

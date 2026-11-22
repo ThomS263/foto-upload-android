@@ -1,0 +1,1 @@
+Deutliche Sicherheitswarnung für unverschlüsselte HTTP-Server sowie ergänzte Sicherheits- und Abhängigkeitsdokumentation.

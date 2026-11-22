@@ -29,6 +29,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.Toast;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.BufferedReader;
@@ -67,6 +69,7 @@ public class MainActivity extends Activity {
         navigation.setOrientation(LinearLayout.HORIZONTAL);
         Button home = navButton("⌂\nStart");
         home.setOnClickListener(view -> { if (server != null) browser.loadUrl(server.toString()); });
+        home.setOnLongClickListener(view -> { showServerPicker(); return true; });
         Button refresh = navButton("↻\nNeu laden");
         refresh.setOnClickListener(view -> browser.reload());
         Button settings = navButton("⚙\nEinstellungen");
@@ -167,7 +170,11 @@ public class MainActivity extends Activity {
         migratePreferences();
         receiveSharedFiles(getIntent());
         String saved = getSharedPreferences(PREFERENCES, MODE_PRIVATE).getString(SERVER_KEY, "");
-        if (saved.isEmpty()) editSettings(); else openServer(saved);
+        if (saved.isEmpty()) editSettings();
+        else {
+            server = Uri.parse(saved);
+            if (state == null || browser.restoreState(state) == null) browser.loadUrl(saved);
+        }
         if (BuildConfig.ALLOW_SIDELOAD_UPDATES) checkForUpdate();
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS")
             != PackageManager.PERMISSION_GRANTED) {
@@ -247,6 +254,39 @@ public class MainActivity extends Activity {
                 startService(service);
             }
         }
+
+        @JavascriptInterface public void setProgress(boolean active, int running, int done, int total) {
+            Intent service = new Intent(MainActivity.this, UploadService.class)
+                .putExtra("active", active).putExtra("count", running)
+                .putExtra("done", done).putExtra("total", total);
+            if (active) {
+                uploadServiceActive = true;
+                startForegroundService(service);
+            } else if (uploadServiceActive) {
+                uploadServiceActive = false;
+                startService(service);
+            }
+        }
+    }
+
+    private void showServerPicker() {
+        Set<String> known = new LinkedHashSet<>(getSharedPreferences(PREFERENCES, MODE_PRIVATE)
+            .getStringSet("servers", new LinkedHashSet<>()));
+        if (server != null) known.add(server.toString());
+        if (known.size() < 2) {
+            Toast.makeText(this, "Weitere Server kannst du in den Einstellungen speichern.", Toast.LENGTH_SHORT).show();
+            editSettings();
+            return;
+        }
+        ArrayList<String> urls = new ArrayList<>(known);
+        String[] labels = new String[urls.size()];
+        for (int index = 0; index < urls.size(); index++) {
+            String name = getSharedPreferences(PREFERENCES, MODE_PRIVATE)
+                .getString("profile:" + urls.get(index), "");
+            labels[index] = name.isEmpty() ? urls.get(index) : name + "\n" + urls.get(index);
+        }
+        new AlertDialog.Builder(this).setTitle("Server wechseln").setItems(labels,
+            (dialog, which) -> openServer(urls.get(which))).setNegativeButton("Abbrechen", null).show();
     }
 
     @Override protected void onNewIntent(Intent intent) {
@@ -397,5 +437,10 @@ public class MainActivity extends Activity {
 
     @Override public void onBackPressed() {
         if (browser.canGoBack()) browser.goBack(); else super.onBackPressed();
+    }
+
+    @Override protected void onSaveInstanceState(Bundle state) {
+        browser.saveState(state);
+        super.onSaveInstanceState(state);
     }
 }

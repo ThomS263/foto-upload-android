@@ -23,14 +23,18 @@ public class UploadService extends Service {
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         boolean active = intent != null && intent.getBooleanExtra("active", false);
         int count = intent == null ? 0 : intent.getIntExtra("count", 0);
+        int done = intent == null ? 0 : intent.getIntExtra("done", 0);
+        int total = intent == null ? 0 : intent.getIntExtra("total", 0);
         if (active) {
-            startForeground(ACTIVE, notification("Upload läuft", count == 1
-                ? "Eine Datei wird gespeichert." : count + " Dateien werden gespeichert.", true));
+            String text = total > 0 ? done + " von " + total + " gespeichert · " + count + " aktiv"
+                : count == 1 ? "Eine Datei wird gespeichert." : count + " Dateien werden gespeichert.";
+            startForeground(ACTIVE, notification("Upload läuft", text, true));
             return START_STICKY;
         }
         stopForeground(STOP_FOREGROUND_REMOVE);
         getSystemService(NotificationManager.class).notify(ACTIVE + 1,
-            notification("Upload abgeschlossen", "Alle ausgewählten Dateien wurden gespeichert.", false));
+            notification("Upload abgeschlossen", total > 0 ? done + " von " + total
+                + " Dateien wurden gespeichert." : "Alle ausgewählten Dateien wurden gespeichert.", false));
         stopSelf();
         return START_NOT_STICKY;
     }

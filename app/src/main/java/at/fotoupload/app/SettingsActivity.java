@@ -152,6 +152,12 @@ public class SettingsActivity extends Activity {
         Uri uri = validAddress(value);
         if (uri == null) return;
         if ("http".equalsIgnoreCase(uri.getScheme())) {
+            if (!MainActivity.isPrivateHttpHost(uri.getHost())) {
+                new AlertDialog.Builder(this).setTitle("HTTPS erforderlich")
+                    .setMessage("Eine öffentliche Serveradresse darf nur über HTTPS verwendet werden. HTTP ist auf lokale und Tailscale-Adressen beschränkt.")
+                    .setPositiveButton("Verstanden", null).show();
+                return;
+            }
             new AlertDialog.Builder(this).setTitle("Ungeschützte Verbindung")
                 .setMessage("HTTP ist nur für ein vertrauenswürdiges lokales Netzwerk gedacht. Für Zugriff über das Internet muss der Server HTTPS verwenden.")
                 .setPositiveButton("Nur im LAN verwenden", (dialog, which) -> saveUri(uri))

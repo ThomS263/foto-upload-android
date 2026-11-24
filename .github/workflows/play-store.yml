@@ -1,7 +1,10 @@
 name: Play-Store-Bundle erstellen
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
 permissions:
-  contents: read
+  contents: write
 jobs:
   bundle:
     runs-on: ubuntu-latest
@@ -14,17 +17,35 @@ jobs:
       - name: Upload-Schlüssel vorbereiten
         env:
           KEYSTORE: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
-        run: test -n "$KEYSTORE" && printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/upload.jks"
-      - name: Signiertes App Bundle bauen
+        run: |
+          test -n "$KEYSTORE"
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/upload.jks"
+          chmod 600 "$RUNNER_TEMP/upload.jks"
+      - name: Signierte APK und App Bundle bauen
         env:
           FOTO_UPLOAD_KEYSTORE: ${{ runner.temp }}/upload.jks
           FOTO_UPLOAD_STORE_PASSWORD: ${{ secrets.PLAY_STORE_PASSWORD }}
           FOTO_UPLOAD_KEY_ALIAS: ${{ secrets.PLAY_KEY_ALIAS }}
           FOTO_UPLOAD_KEY_PASSWORD: ${{ secrets.PLAY_KEY_PASSWORD }}
-        run: ./gradlew bundleRelease --no-daemon
+        run: ./gradlew assembleRelease bundleRelease --no-daemon
       - name: Signatur prüfen
-        run: jarsigner -verify -strict app/build/outputs/bundle/release/*.aab
+        run: |
+          jarsigner -verify app/build/outputs/bundle/release/*.aab
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/*.apk
+          sha256sum app/build/outputs/apk/release/*.apk > app/build/outputs/apk/release/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
           name: foto-upload-play-bundle
-          path: app/build/outputs/bundle/release/*.aab
+          path: |
+            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/release/SHA256SUMS
+      - name: Signierte APK veröffentlichen
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk foto-upload-android.apk
+          sha256sum foto-upload-android.apk > SHA256SUMS
+          gh release upload "$GITHUB_REF_NAME" foto-upload-android.apk SHA256SUMS --clobber 2>/dev/null || \
+            gh release create "$GITHUB_REF_NAME" foto-upload-android.apk SHA256SUMS --title "Foto-Upload Android $GITHUB_REF_NAME" --generate-notes

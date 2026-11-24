@@ -4,9 +4,9 @@ Android-App für einen selbst betriebenen Foto-Upload-Server. Beim ersten Start 
 
 **[Aktuelle APK herunterladen](https://github.com/ThomS263/foto_upload_offiziell_androidapp/releases/latest/download/foto-upload-android.apk)** · [Foto-Upload-Server und CasaOS-Installation](https://github.com/ThomS263/foto_upload_offiziel)
 
-Die APK kann bis zur Veröffentlichung im Google Play Store direkt über GitHub Releases installiert werden. Bei Android muss dafür gegebenenfalls einmalig die Installation aus dem verwendeten Browser erlaubt werden.
+Die APK kann bis zur Veröffentlichung im Google Play Store direkt über GitHub Releases installiert werden. Veröffentlicht werden ausschließlich signierte Release-APKs samt SHA-256-Prüfsumme, keine Debug-APKs. Bei Android muss dafür gegebenenfalls einmalig die Installation aus dem verwendeten Browser erlaubt werden.
 
-Die App verlangt keine pauschalen Kamera- oder Mediathek-Rechte: Kamera und Dateiauswahl laufen über Android-Systemdialoge mit temporären Freigaben. HTTPS-Zertifikate werden vom Betriebssystem geprüft; HTTP löst eine deutliche LAN-Warnung aus. Serveradressen sind keine Zugangsdaten, liegen im privaten App-Speicher und werden nicht in Android-Backups übernommen. Details und der vertrauliche Meldeweg stehen in [SECURITY.md](SECURITY.md).
+Die App verlangt keine pauschalen Kamera- oder Mediathek-Rechte: Kamera und Dateiauswahl laufen über Android-Systemdialoge mit temporären Freigaben. HTTPS-Zertifikate werden vom Betriebssystem geprüft; HTTP ist nur für lokale, private und Tailscale-Adressen erlaubt und löst eine deutliche LAN-Warnung aus. Serveradressen sind keine Zugangsdaten, liegen im privaten App-Speicher und werden nicht in Android-Backups übernommen. Details und der vertrauliche Meldeweg stehen in [SECURITY.md](SECURITY.md).
 
 ## In Android Studio öffnen
 

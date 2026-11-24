@@ -18,6 +18,7 @@ import android.webkit.WebResourceError;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.os.Build;
 import android.content.pm.PackageManager;
@@ -92,10 +93,23 @@ public class MainActivity extends Activity {
         web.setDomStorageEnabled(true);
         web.setAllowFileAccess(false);
         web.setAllowContentAccess(true);
+        web.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        web.setSafeBrowsingEnabled(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(browser, false);
         browser.addJavascriptInterface(new UploadBridge(), "AndroidUpload");
         browser.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, true);
         browser.setWebViewClient(new WebViewClient() {
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                if (!sameServer(Uri.parse(url))) {
+                    view.stopLoading();
+                    view.removeJavascriptInterface("AndroidUpload");
+                    Uri target = Uri.parse(url);
+                    if ("https".equalsIgnoreCase(target.getScheme())) {
+                        startActivity(new Intent(Intent.ACTION_VIEW, target));
+                    }
+                    return;
+                }
+                view.addJavascriptInterface(new UploadBridge(), "AndroidUpload");
                 browser.setVisibility(View.VISIBLE);
                 offline.setVisibility(View.GONE);
             }
@@ -401,10 +415,33 @@ public class MainActivity extends Activity {
             editSettings();
             return;
         }
+        if ("http".equalsIgnoreCase(candidate.getScheme()) && !isPrivateHttpHost(candidate.getHost())) {
+            Toast.makeText(this, "HTTP ist nur für lokale oder Tailscale-Adressen erlaubt.", Toast.LENGTH_LONG).show();
+            editSettings();
+            return;
+        }
         server = candidate;
         getSharedPreferences(PREFERENCES, MODE_PRIVATE).edit()
             .putString(SERVER_KEY, candidate.toString()).apply();
         browser.loadUrl(candidate.toString());
+    }
+
+    static boolean isPrivateHttpHost(String host) {
+        if (host == null) return false;
+        String value = host.toLowerCase(java.util.Locale.ROOT);
+        if (value.equals("localhost") || value.endsWith(".local") || value.endsWith(".lan")
+            || value.equals("::1") || value.startsWith("fc") || value.startsWith("fd")
+            || value.startsWith("fe80:")) return true;
+        String[] parts = value.split("\\.");
+        if (parts.length != 4) return false;
+        try {
+            int a = Integer.parseInt(parts[0]);
+            int b = Integer.parseInt(parts[1]);
+            return a == 10 || a == 127 || (a == 192 && b == 168)
+                || (a == 172 && b >= 16 && b <= 31) || (a == 100 && b >= 64 && b <= 127);
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 
     private void migratePreferences() {

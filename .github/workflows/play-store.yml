@@ -33,7 +33,7 @@ jobs:
           jarsigner -verify app/build/outputs/bundle/release/*.aab
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/release/*.apk
           sha256sum app/build/outputs/apk/release/*.apk > app/build/outputs/apk/release/SHA256SUMS
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: foto-upload-play-bundle
           path: |

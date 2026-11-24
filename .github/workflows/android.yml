@@ -12,7 +12,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - run: ./gradlew assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: foto-upload-debug
           path: app/build/outputs/apk/debug/*.apk

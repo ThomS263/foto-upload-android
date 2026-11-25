@@ -18,7 +18,6 @@ import android.webkit.WebResourceError;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
 import android.os.Build;
 import android.content.pm.PackageManager;
@@ -91,8 +90,13 @@ public class MainActivity extends Activity {
         web.setTextZoom(100);
         web.setUserAgentString(web.getUserAgentString() + " FotoUploadAndroid/1");
         web.setDomStorageEnabled(true);
+        web.setSaveFormData(false);
         web.setAllowFileAccess(false);
         web.setAllowContentAccess(true);
+        web.setAllowFileAccessFromFileURLs(false);
+        web.setAllowUniversalAccessFromFileURLs(false);
+        web.setGeolocationEnabled(false);
+        web.setMediaPlaybackRequiresUserGesture(true);
         web.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         web.setSafeBrowsingEnabled(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(browser, false);
@@ -215,7 +219,7 @@ public class MainActivity extends Activity {
             HttpURLConnection connection = null;
             try {
                 connection = (HttpURLConnection) new URL(
-                    "https://api.github.com/repos/ThomS263/foto_upload_offiziell_androidapp/releases/latest"
+                    "https://api.github.com/repos/ThomS263/foto-upload-android/releases/latest"
                 ).openConnection();
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);
@@ -233,7 +237,7 @@ public class MainActivity extends Activity {
                     .setTitle("App-Update verfügbar")
                     .setMessage("Version " + latest + " kann jetzt von GitHub installiert werden.")
                     .setPositiveButton("APK herunterladen", (dialog, which) -> startActivity(new Intent(
-                        Intent.ACTION_VIEW, Uri.parse("https://github.com/ThomS263/foto_upload_offiziell_androidapp/releases/latest"))))
+                        Intent.ACTION_VIEW, Uri.parse("https://github.com/ThomS263/foto-upload-android/releases/latest"))))
                     .setNegativeButton("Später", null).show());
             } catch (Exception ignored) {
                 // Updates are optional; the app remains usable without GitHub.
@@ -314,7 +318,7 @@ public class MainActivity extends Activity {
             || Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction()))) return;
         ArrayList<Uri> uris = new ArrayList<>();
         if (intent.getClipData() != null) {
-            for (int index = 0; index < intent.getClipData().getItemCount(); index++) {
+            for (int index = 0; index < Math.min(intent.getClipData().getItemCount(), 500); index++) {
                 Uri uri = intent.getClipData().getItemAt(index).getUri();
                 if (uri != null && "content".equals(uri.getScheme())) uris.add(uri);
             }
@@ -322,7 +326,10 @@ public class MainActivity extends Activity {
         if (uris.isEmpty()) {
             if (Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
                 ArrayList<Uri> many = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
-                if (many != null) for (Uri uri : many) if (uri != null && "content".equals(uri.getScheme())) uris.add(uri);
+                if (many != null) for (Uri uri : many) {
+                    if (uris.size() >= 500) break;
+                    if (uri != null && "content".equals(uri.getScheme())) uris.add(uri);
+                }
             } else {
                 Uri one = intent.getParcelableExtra(Intent.EXTRA_STREAM);
                 if (one != null && "content".equals(one.getScheme())) uris.add(one);
@@ -333,6 +340,9 @@ public class MainActivity extends Activity {
             sharedAlbumPicker = true;
             if (server != null) browser.loadUrl(server.toString());
             Toast.makeText(this, "Wähle gleich das Zielalbum aus.", Toast.LENGTH_LONG).show();
+            if ((intent.getClipData() != null && intent.getClipData().getItemCount() > 500)) {
+                Toast.makeText(this, "Es werden höchstens 500 Dateien gleichzeitig übernommen.", Toast.LENGTH_LONG).show();
+            }
         }
     }
 

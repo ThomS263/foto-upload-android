@@ -4,6 +4,16 @@ Android-App für einen selbst betriebenen Foto-Upload-Server. Beim ersten Start 
 
 **[Aktuelle APK herunterladen](https://github.com/ThomS263/foto-upload-android/releases/latest/download/foto-upload-android.apk)** · [Foto-Upload-Server und CasaOS-Installation](https://github.com/ThomS263/foto-upload)
 
+## Oberfläche
+
+<p align="center">
+  <img src="docs/screenshots/einstellungen.png" alt="Serverprofile und Verbindungstest in den Einstellungen" width="280">
+  &nbsp;
+  <img src="docs/screenshots/navigation.png" alt="Untere Navigation mit Start, Neu laden und Einstellungen" width="280">
+</p>
+
+Die wichtigsten Funktionen bleiben über die große untere Navigation erreichbar. In den Einstellungen können mehrere Serverprofile gespeichert, per QR-Code übernommen und vor dem Öffnen getestet werden. Weitere Bilder und Erklärungen stehen in der [UI-Tour im Wiki](https://github.com/ThomS263/foto-upload-android/wiki/Oberfläche-und-Screenshots).
+
 Die APK kann bis zur Veröffentlichung im Google Play Store direkt über GitHub Releases installiert werden. Veröffentlicht werden ausschließlich signierte Release-APKs samt SHA-256-Prüfsumme, keine Debug-APKs. Bei Android muss dafür gegebenenfalls einmalig die Installation aus dem verwendeten Browser erlaubt werden.
 
 Die App verlangt keine pauschalen Kamera- oder Mediathek-Rechte: Kamera und Dateiauswahl laufen über Android-Systemdialoge mit temporären Freigaben. HTTPS-Zertifikate werden vom Betriebssystem geprüft; HTTP ist nur für lokale, private und Tailscale-Adressen erlaubt und löst eine deutliche LAN-Warnung aus. Serveradressen sind keine Zugangsdaten, liegen im privaten App-Speicher und werden nicht in Android-Backups übernommen. Details und der vertrauliche Meldeweg stehen in [SECURITY.md](SECURITY.md).
@@ -41,3 +51,7 @@ Ab Version 1.5 prüft die App GitHub Releases auf neue APKs. Beim Teilen zeigt s
 Datenschutzerklärung und Store-Texte liegen im Repository. Der Workflow **Play-Store-Bundle erstellen** erzeugt nach manueller Freigabe ein signiertes Android App Bundle. Dafür werden die GitHub-Secrets `PLAY_KEYSTORE_BASE64`, `PLAY_STORE_PASSWORD`, `PLAY_KEY_ALIAS` und `PLAY_KEY_PASSWORD` benötigt. Das erzeugte `.aab` kann zunächst in den internen oder geschlossenen Test von Google Play hochgeladen werden. Die Release-Signatur muss dauerhaft gesichert werden; ohne denselben Schlüssel lassen sich spätere Updates nicht veröffentlichen.
 
 [Datenschutzerklärung](PRIVACY.md) · [Play-Store-Checkliste](PLAY_STORE.md)
+
+## Dokumentation
+
+[Installation](https://github.com/ThomS263/foto-upload-android/wiki/Installation) · [Bedienung](https://github.com/ThomS263/foto-upload-android/wiki/Bedienung) · [Fehlerbehebung](https://github.com/ThomS263/foto-upload-android/wiki/Fehlerbehebung) · [Entwicklung](https://github.com/ThomS263/foto-upload-android/wiki/Entwicklung)
